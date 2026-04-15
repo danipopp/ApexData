@@ -1,0 +1,3 @@
+/Users/danielpopp/famos-app/src-cpp/build/CMakeFiles/famos_engine.dir
+/Users/danielpopp/famos-app/src-cpp/build/CMakeFiles/edit_cache.dir
+/Users/danielpopp/famos-app/src-cpp/build/CMakeFiles/rebuild_cache.dir

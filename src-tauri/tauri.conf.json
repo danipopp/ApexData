@@ -1,0 +1,35 @@
+{
+  "productName": "famos-app",
+  "version": "0.1.0",
+  "identifier": "com.danielpopp.famos-app",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "famos-app",
+        "width": 800,
+        "height": 600
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "externalBin": [
+      "binaries/famos_engine"
+    ]
+  },
+  "plugins": {
+    "shell": {
+      "open": true 
+    },
+    "dialog": null,
+    "opener": null
+  }
+}
