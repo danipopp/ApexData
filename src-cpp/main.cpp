@@ -13,6 +13,9 @@ int main(int argc, char* argv[]) {
 
     // Daten laden und bei Erfolg als JSON ausgeben
     if (myManager.loadDynamicCSV()) {
+        // Reduce data so ApexCharts stays smooth
+        myManager.downsample(2000);
+
         myManager.printAsJson();
     } else {
         std::cout << "{\"status\":\"error\", \"msg\":\"Datei-Zugriff verweigert\"}" << std::endl;
