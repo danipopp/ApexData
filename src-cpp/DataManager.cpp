@@ -79,3 +79,10 @@ void DataManager::printAsJson() const {
     }
     std::cout << "]} " << std::endl;
 }
+
+void DataManager::downsample(int targetPoints)
+{
+    size_t totalPoints = rawDataY.size();
+
+    
+}

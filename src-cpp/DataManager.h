@@ -13,6 +13,9 @@ private:
     // Tabelle[Spalte][Zeile]
     std::vector<std::vector<double>> tableData;
 
+    std::vector<double> rawDataX; // Usually the Time axis
+    std::vector<double> rawDataY; // Usually the Measurement values
+
 public:
     // Konstruktor nimmt nur den Pfad entgegen
     DataManager(std::string path);
@@ -22,6 +25,8 @@ public:
 
     // Funktion, die die Daten als JSON an das Frontend schickt
     void printAsJson() const;
+
+    void downsample(int targetPoints);
 };
 
 #endif
