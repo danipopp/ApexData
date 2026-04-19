@@ -80,9 +80,71 @@ void DataManager::printAsJson() const {
     std::cout << "]} " << std::endl;
 }
 
+/**
+ * Reduces the number of data points while preserving visual extremes (min/max).
+ * This is crucial for engineering data to ensure spikes aren't lost.
+ * @param targetPoints The approximate number of points desired for the UI.
+ */
 void DataManager::downsample(int targetPoints)
 {
     size_t totalPoints = rawDataY.size();
 
+    // If the data is already smaller than the target, no need to downsample.
+    if (totalPoints <= (size_t)targetPoints) {
+        return;
+    }    
+
+    std::vector<double> sampledX;
+    std::vector<double> sampledY;
+
+    // We pick 2 points (Min and Max) per bucket, 
+    // so we divide the target count by 2 to get the number of buckets.
+    int numBuckets = targetPoints / 2;
+    double bucketSize = static_cast<double>(totalPoints) / numBuckets;
+
+    // Reserve memory upfront to avoid multiple reallocations
+    sampledX.reserve(targetPoints);
+    sampledY.reserve(targetPoints);
+
+    for (int i = 0; i < numBuckets; ++i) {
+        // Calculate the range of the current bucket
+        size_t start = static_cast<size_t>(i * bucketSize);
+        size_t end = static_cast<size_t>((i + 1) * bucketSize);
+
+        // Safety check for the last bucket
+        if (end > totalPoints) end = totalPoints;
+        if (start >= end) continue;
+
+        size_t minIdx = start;
+        size_t maxIdx = start;
+
+        // Iterate through the bucket to find the minimum and maximum values
+        for (size_t j = start; j < end; ++j) {
+            if (rawDataY[j] < rawDataY[minIdx]) minIdx = j;
+            if (rawDataY[j] > rawDataY[maxIdx]) maxIdx = j;
+        }
+
+        // To keep the X-axis (Time) consistent, we must add the 
+        // min and max points in the order they originally appeared.
+        if (minIdx < maxIdx) {
+            sampledX.push_back(rawDataX[minIdx]);
+            sampledY.push_back(rawDataY[minIdx]);
+            sampledX.push_back(rawDataX[maxIdx]);
+            sampledY.push_back(rawDataY[maxIdx]);
+        } else if (minIdx > maxIdx) {
+            sampledX.push_back(rawDataX[maxIdx]);
+            sampledY.push_back(rawDataY[maxIdx]);
+            sampledX.push_back(rawDataX[minIdx]);
+            sampledY.push_back(rawDataY[minIdx]);
+        } else {
+            // Min and Max are the same point (happens in flat data)
+            sampledX.push_back(rawDataX[minIdx]);
+            sampledY.push_back(rawDataY[minIdx]);
+        }
+    }
     
+    // Replace the massive vectors with the small sampled versions.
+    // std::move is used here for high performance (swaps pointers).
+    rawDataX = std::move(sampledX);
+    rawDataY = std::move(sampledY);
 }
