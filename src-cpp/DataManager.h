@@ -12,7 +12,6 @@ private:
     // Die eigentlichen Daten: Ein Vektor, der pro Spalte einen Vektor von Zahlen enthält
     // Tabelle[Spalte][Zeile]
     std::vector<std::vector<double>> tableData;
-
 public:
     // Konstruktor nimmt nur den Pfad entgegen
     DataManager(std::string path);
@@ -22,6 +21,8 @@ public:
 
     // Funktion, die die Daten als JSON an das Frontend schickt
     void printAsJson() const;
+
+    void downsample(int targetPoints);
 };
 
 #endif
