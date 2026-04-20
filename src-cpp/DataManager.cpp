@@ -87,12 +87,14 @@ void DataManager::printAsJson() const {
  */
 void DataManager::downsample(int targetPoints)
 {
-    size_t totalPoints = rawDataY.size();
+    // Assuming Column 0 is X (Time) and Column 1 is Y (Values)
+    if (tableData.size() < 2) return;
 
-    // If the data is already smaller than the target, no need to downsample.
-    if (totalPoints <= (size_t)targetPoints) {
-        return;
-    }    
+    std::vector<double>& rawX = tableData[0];
+    std::vector<double>& rawY = tableData[1];
+    size_t totalPoints = rawY.size();
+
+    if (totalPoints <= (size_t)targetPoints) return;
 
     std::vector<double> sampledX;
     std::vector<double> sampledY;
@@ -120,31 +122,29 @@ void DataManager::downsample(int targetPoints)
 
         // Iterate through the bucket to find the minimum and maximum values
         for (size_t j = start; j < end; ++j) {
-            if (rawDataY[j] < rawDataY[minIdx]) minIdx = j;
-            if (rawDataY[j] > rawDataY[maxIdx]) maxIdx = j;
+            if (rawY[j] < rawY[minIdx]) minIdx = j;
+            if (rawY[j] > rawY[maxIdx]) maxIdx = j;
         }
 
         // To keep the X-axis (Time) consistent, we must add the 
         // min and max points in the order they originally appeared.
         if (minIdx < maxIdx) {
-            sampledX.push_back(rawDataX[minIdx]);
-            sampledY.push_back(rawDataY[minIdx]);
-            sampledX.push_back(rawDataX[maxIdx]);
-            sampledY.push_back(rawDataY[maxIdx]);
+            sampledX.push_back(rawX[minIdx]);
+            sampledY.push_back(rawY[minIdx]);
+            sampledX.push_back(rawX[maxIdx]);
+            sampledY.push_back(rawY[maxIdx]);
         } else if (minIdx > maxIdx) {
-            sampledX.push_back(rawDataX[maxIdx]);
-            sampledY.push_back(rawDataY[maxIdx]);
-            sampledX.push_back(rawDataX[minIdx]);
-            sampledY.push_back(rawDataY[minIdx]);
+            sampledX.push_back(rawX[maxIdx]);
+            sampledY.push_back(rawY[maxIdx]);
+            sampledX.push_back(rawX[minIdx]);
+            sampledY.push_back(rawY[minIdx]);
         } else {
-            // Min and Max are the same point (happens in flat data)
-            sampledX.push_back(rawDataX[minIdx]);
-            sampledY.push_back(rawDataY[minIdx]);
+            sampledX.push_back(rawX[minIdx]);
+            sampledY.push_back(rawY[minIdx]);
         }
     }
-    
-    // Replace the massive vectors with the small sampled versions.
-    // std::move is used here for high performance (swaps pointers).
-    rawDataX = std::move(sampledX);
-    rawDataY = std::move(sampledY);
+
+    // Put the downsampled columns back into the main table
+    tableData[0] = std::move(sampledX);
+    tableData[1] = std::move(sampledY);
 }
