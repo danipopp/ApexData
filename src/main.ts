@@ -1,10 +1,11 @@
 import { Command } from '@tauri-apps/plugin-shell';
 import { open } from '@tauri-apps/plugin-dialog';
-import ApexCharts, { ApexOptions } from 'apexcharts';
+import { ChartEngine } from './chart/ChartEngine';
 
 // Store the chart instance globally so we can destroy/update it 
 // when a new file is loaded, preventing memory leaks.
-let chart: ApexCharts | null = null;
+let chart: ChartEngine | null = null;
+const btn = document.querySelector('#run-engine-btn') as HTMLButtonElement;
 
 async function runAnalysis() {
   // 1. SELECT UI ELEMENTS
@@ -12,6 +13,8 @@ async function runAnalysis() {
   const statusEl = document.getElementById('engine-status');
   const valueEl = document.getElementById('engine-value');
   const chartArea = document.querySelector('#chart-area') as HTMLElement | null;
+
+  btn.disabled = true;
   if (statusEl) statusEl.innerText = "Processing...";
 
   try {
@@ -44,44 +47,22 @@ async function runAnalysis() {
       if (valueEl) valueEl.innerText = `${result.headers.length} Columns found`;
 
       // --- 4. PREPARE DATA FOR APEXCHARTS ---
-      // ApexCharts line charts expect data in the format: [ [x1, y1], [x2, y2] ... ]
-      // We assume Column 0 is Time (X) and Column 1 is Value (Y).
-      const seriesData = result.columns[0].map((xValue: number, index: number) => {
-        return [xValue, result.columns[1][index]];
-      });
-
-      const chartOptions : ApexOptions = {
-        series: [{ 
-          name: result.headers[1], // Legend takes the name from C++ Header
-          data: seriesData 
-        }],
-        chart: {
-          type: 'line',
-          height: 350,
-          background: 'transparent', // Let CSS handle the background
-          foreColor: '#e2e8f0',      // Light text for dark mode
-          animations: { enabled: false }, // Disabled for performance with downsampled data
-          zoom: { enabled: true }
-        },
-        colors: ['#38bdf8'], // The technical blue from your CSS
-        stroke: { width: 2, curve: 'straight' },
-        grid: { borderColor: '#334155' }, // Subtle grid lines
-        xaxis: { 
-          type: 'numeric', 
-          title: { text: result.headers[0] } // X-Label from C++
-        },
-        yaxis: {
-            title: { text: result.headers[1] } // Y-Label from C++
-        },
-        theme: { mode: 'dark' }
-      };
-
-      // --- 5. RENDER THE CHART ---
       if (chartArea) {
-        chartArea.innerHTML = ""; // Remove the "No data" placeholder text
-        if (chart) chart.destroy(); // Clean up old chart if it exists
-        chart = new ApexCharts(chartArea, chartOptions);
-        chart.render();
+        if (chart) {chart.destroy(); chart = null};
+        chartArea.innerHTML = "";
+
+        const canvas = document.createElement("canvas");
+        canvas.style.width = "100%";
+        canvas.style.height = "400px";
+
+        chartArea.appendChild(canvas);
+        chart = new ChartEngine(canvas);
+
+        chart.setSignal(
+          result.columns[0],   // time axis
+          result.columns[1],   // signal values
+          result.headers[1]
+        );
       }
 
       // --- 6. RENDER THE DATA TABLE ---
@@ -126,8 +107,10 @@ async function runAnalysis() {
   } catch (err) {
     console.error("Analysis failed:", err);
     if (statusEl) statusEl.innerText = "Error!";
+  } finally {
+    // Button am Ende wieder freigeben
+    btn.disabled = false;
   }
 }
 
-// Initial event listener for the start button
-document.querySelector('#run-engine-btn')?.addEventListener('click', runAnalysis);
+btn.addEventListener('click', runAnalysis);
