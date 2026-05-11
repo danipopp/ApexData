@@ -131,6 +131,22 @@ function renderSignalSelectionUI(headers: string[]) {
   });
 }
 
+function renderSignalNamesHeader(selectedSignalNames: string[]) {
+  const signalNamesContainer = document.getElementById('signal-names-container');
+  if (!signalNamesContainer) return;
+
+  signalNamesContainer.innerHTML = '';
+
+  selectedSignalNames.forEach((name, index) => {
+    const span = document.createElement('span');
+    span.className = 'signal-name';
+    span.textContent = name;
+    span.style.marginRight = '10px';
+
+    signalNamesContainer.appendChild(span);
+  });
+}
+
 function updateChart() {
   if (!chart || allColumns.length === 0 || allHeaders.length === 0) return;
 
@@ -156,6 +172,7 @@ function updateChart() {
     return;
   }
 
+  renderSignalNamesHeader(selectedSignalNames);
   chart.setSignal(allColumns[0], selectedYSignals, selectedSignalNames);
 }
 
