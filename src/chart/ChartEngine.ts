@@ -8,10 +8,22 @@ export class ChartEngine {
 
     /** X-axis data points (e.g., time) */
     private xData: number[] = [];
-    /** Y-axis data points (e.g., amplitude) */
-    private yData: number[] = [];
-    /** Name of the signal for labeling purposes */
-    private signalName: string = "";
+    /** Array of Y-axis data point arrays (e.g., amplitude for multiple signals) */
+    private yData: number[][] = [];
+    /** Array of descriptive names for each signal */
+    private signalNames: string[] = [];
+
+    /** A palette of colors to use for different signals */
+    private signalColors: string[] = [
+        "#38bdf8", // Sky Blue
+        "#facc15", // Yellow
+        "#a78bfa", // Violet
+        "#fb7185", // Rose
+        "#34d399", // Emerald
+        "#e879f9", // Fuchsia
+        "#f472b6", // Pink
+        "#c084fc", // Purple
+    ];
 
     /** Stored reference to the resize handler for proper event listener cleanup */
     private resizeHandler: () => void;
@@ -44,10 +56,10 @@ export class ChartEngine {
      * @param y Array of Y-axis values.
      * @param name Descriptive name of the signal.
      */
-    public setSignal(x: number[], y: number[], name: string): void {
+    public setSignal(x: number[], ySignals: number[][], names: string[]): void {
         this.xData = x;
-        this.yData = y;
-        this.signalName = name;
+        this.yData = ySignals;
+        this.signalNames = names;
         
         this.render();
     }
@@ -79,7 +91,7 @@ export class ChartEngine {
         this.drawGrid();
 
         // 3. Draw the actual signal data if available
-        if (this.xData.length > 0 && this.yData.length > 0) {
+        if (this.xData.length > 0 && this.yData.length > 0 && this.yData[0].length > 0) {
             this.drawSignal();
             this.drawLabel();
         }
@@ -120,49 +132,62 @@ export class ChartEngine {
         const h = this.canvas.height;
         const padding = 40; // Pixel padding from canvas edges
 
-        // Determine data bounds for scaling
+        // Determine global data bounds across all signals for consistent scaling
         const xMin = Math.min(...this.xData);
         const xMax = Math.max(...this.xData);
-        const yMin = Math.min(...this.yData);
-        const yMax = Math.max(...this.yData);
+        let yMin = Infinity;
+        let yMax = -Infinity;
+
+        for (const signal of this.yData) {
+            yMin = Math.min(yMin, ...signal);
+            yMax = Math.max(yMax, ...signal);
+        }
 
         const xRange = xMax - xMin || 1;
         const yRange = yMax - yMin || 1;
 
-        // Visualization styling
-        this.ctx.strokeStyle = "#38bdf8";
-        this.ctx.lineWidth = 2;
-        this.ctx.lineJoin = "round";
+        // Draw each signal
+        this.yData.forEach((signal, index) => {
+            this.ctx.strokeStyle = this.signalColors[index % this.signalColors.length];
+            this.ctx.lineWidth = 2;
+            this.ctx.lineJoin = "round";
 
-        this.ctx.beginPath();
+            this.ctx.beginPath();
 
-        for (let i = 0; i < this.xData.length; i++) {
-            // Normalize data point to [0, 1] range and scale to canvas dimensions
-            const xNorm = (this.xData[i] - xMin) / xRange;
-            const yNorm = (this.yData[i] - yMin) / yRange;
+            for (let i = 0; i < this.xData.length; i++) {
+                // Normalize data point to [0, 1] range and scale to canvas dimensions
+                const xNorm = (this.xData[i] - xMin) / xRange;
+                const yNorm = (signal[i] - yMin) / yRange;
 
-            // Invert Y axis as canvas (0,0) is top-left
-            const px = padding + xNorm * (w - 2 * padding);
-            const py = h - (padding + yNorm * (h - 2 * padding));
+                // Invert Y axis as canvas (0,0) is top-left
+                const px = padding + xNorm * (w - 2 * padding);
+                const py = h - (padding + yNorm * (h - 2 * padding));
 
-            if (i === 0) {
-                this.ctx.moveTo(px, py);
-            } else {
-                this.ctx.lineTo(px, py);
+                if (i === 0) {
+                    this.ctx.moveTo(px, py);
+                } else {
+                    this.ctx.lineTo(px, py);
+                }
             }
-        }
-        this.ctx.stroke();
+            this.ctx.stroke();
+        });
     }
 
     /**
-     * Renders the signal name as a label on the canvas.
+     * Renders the signal names as a legend on the canvas.
      */
     private drawLabel(): void {
-        this.ctx.fillStyle = "#38bdf8";
         this.ctx.font = "bold 14px Inter, system-ui, sans-serif";
         this.ctx.textAlign = "left";
-        this.ctx.fillText(this.signalName, 20, 30);
-    }
+        const lineHeight = 20; // Vertical spacing between labels
+        let currentY = 30;
+
+        this.signalNames.forEach((name, index) => {
+            this.ctx.fillStyle = this.signalColors[index % this.signalColors.length];
+            this.ctx.fillText(name, 20, currentY);
+            currentY += lineHeight;
+        });
+    }    
 
     /**
      * Cleans up resources, removes event listeners, and clears data.
@@ -173,6 +198,6 @@ export class ChartEngine {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         this.xData = [];
         this.yData = [];
-        this.signalName = "";
+        this.signalNames = [];
     }
 }
